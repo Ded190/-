@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -275,7 +277,7 @@ h1{font-size:22px;font-weight:800;color:#c98bb5;text-shadow:0 1px 0 #fff}
       <button class="btn ctaBtn" id="bBox">📦 Коробка дня</button>
     </div>
     <button class="btn wheelPad" id="bShop">🛍️ Магазин</button>
-    <button class="btn wheelPad" id="bAd">📺 +5000 хомакоинов за рекламу</button>
+    <button class="btn wheelPad" id="bAd">📺 +1000 хомакоинов за рекламу</button>
     <button class="btn wheelPad" id="vkShare" style="display:none">📢 Похвастаться в VK</button>
     <button class="btn wheelPad" id="vkBoard" style="display:none">🏆 Топ игроков</button>
     <div class="h2">Прокачка</div>
@@ -328,7 +330,7 @@ h1{font-size:22px;font-weight:800;color:#c98bb5;text-shadow:0 1px 0 #fff}
   <div class="wheelBox">
     <div style="font-size:56px">📺</div>
     <div style="font-weight:800;color:#c98bb5;font-size:18px">Смотрим рекламу…</div>
-    <div class="prize" id="adOvN">+5000 хомакоинов через 3…</div>
+    <div class="prize" id="adOvN">+1000 хомакоинов через 3…</div>
   </div>
 </div>
 <div class="achT" id="achT"></div>
@@ -628,8 +630,8 @@ function buildSky(){const bg=$('bgLayer');
   b.style.animationDuration=(3+Math.random()*2)+'s';bg.appendChild(b)}}
 buildSky();
 
-/* ===== SDK Яндекс Игр + реклама с вознаграждением: +5000 раз в 30 минут ===== */
-const AD_REWARD=5000,AD_COOLDOWN=30*60*1000;
+/* ===== SDK Яндекс Игр + реклама с вознаграждением: +1000 раз в 30 минут ===== */
+const AD_REWARD=1000,AD_COOLDOWN=30*60*1000;
 let ysdk=null,gameplayOn=false;
 function sdkReady(sdk){ysdk=sdk;updateAdBtn();
  try{ysdk.features.LoadingAPI&&ysdk.features.LoadingAPI.ready()}catch(e){}}
@@ -668,10 +670,10 @@ $('bAd').onclick=()=>{if(!adReady()){
   catch(e){muteAd(false);emulateAd()}}
  else emulateAd()};
 function emulateAd(){$('adOv').classList.add('show');muteAd(true);
- let n=3;$('adOvN').textContent='+5000 хомакоинов через 3…';
+ let n=3;$('adOvN').textContent='+'+fmt(AD_REWARD)+' хомакоинов через 3…';
  const iv=setInterval(()=>{n--;
   if(n<=0){clearInterval(iv);$('adOv').classList.remove('show');muteAd(false);giveAd()}
-  else $('adOvN').textContent='+5000 хомакоинов через '+n+'…'},1000)}
+  else $('adOvN').textContent='+'+fmt(AD_REWARD)+' хомакоинов через '+n+'…'},1000)}
 setInterval(updateAdBtn,15000);
 
 /* ===== VK Bridge: инициализация в мини-приложении и «Похвастаться» ===== */
@@ -802,8 +804,8 @@ function givePrize(idx){const pr=SECTORS[idx];
    $('prizeTxt').textContent='Новый друг: '+p.e+' '+p.n+'! +'+p.cps+'/сек'}}
  else{const it=ALL_ITEMS.concat(DECOR).find(x=>x.id===pr.id);
   const dup=S.bought.includes(it.id)||S.decor.includes(it.id);
-  if(dup){const comp=Math.round(it.p*.5);S.coins+=comp;S.earned+=comp;
-   $('prizeTxt').textContent=it.e+' уже есть — компенсация +'+fmt(comp)+' 💰 '}
+  if(dup){const comp=it.p<1000?it.p:Math.round(it.p*.5);S.coins+=comp;S.earned+=comp;
+   $('prizeTxt').textContent=it.e+' уже есть — компенсация +'+fmt(comp)+' 💰'}
   else{if(DECOR.some(x=>x.id===it.id)){S.decor.push(it.id)}
    else{if(HEADWEAR.includes(it.id))S.worn=S.worn.filter(w=>!HEADWEAR.includes(w));
     S.bought.push(it.id);S.worn.push(it.id)}
@@ -831,4 +833,3 @@ render();renderAcc();pullCloud();
 </script>
 </body>
 </html>
-
