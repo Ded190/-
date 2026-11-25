@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -681,23 +680,31 @@ if(isVK&&window.vkBridge&&typeof vkBridge.send==='function'){
  try{vkBridge.send('VKWebAppInit');$('vkShare').style.display='block';$('vkBoard').style.display='block';
   setTimeout(()=>toast('🐹 Хомакоин: VK-режим активен'),600)}catch(e){}}
 else if(isVK)setTimeout(()=>toast('⚠️ VK-мост не загрузился — обнови страницу'),600);
-$('vkShare').onclick=()=>{if(!(window.vkBridge&&typeof vkBridge.send==='function'))return;
- try{vkBridge.send('VKWebAppShare',{link:location.href})
-  .then(r=>{if(r&&r.result)toast('📢 Шторка VK открылась — жми «Поделиться»!')})
-  .catch(()=>vkFallback())}catch(e){vkFallback()}};
-/* если шторка не открылась — копируем ссылку в буфер, это работает почти везде */
-function vkFallback(){if(window.vkBridge&&typeof vkBridge.send==='function'){
- try{vkBridge.send('VKWebAppCopyText',{text:location.href})
-  .then(r=>{if(r&&r.result)toast('📋 Ссылка скопирована — вставь её в пост!')})
-  .catch(()=>toast('📢 VK не дал открыть шторку'))}catch(e){toast('📢 VK не дал открыть шторку')}}}
+/* фоллбек-цепочка: мост VK (2,5 сек на ответ) → системная шторка Android → буфер обмена */
+function withTimeout(p,ms){return new Promise(res=>{const t=setTimeout(()=>res(null),ms);
+ p.then(v=>{clearTimeout(t);res(v)}).catch(()=>{clearTimeout(t);res(null)})})}
+function copyLink(){
+ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(location.href)
+  .then(()=>toast('📋 Ссылка скопирована — вставь её в пост!'))
+  .catch(()=>toast('📋 Скопируй адрес вручную: '+location.href))}
+ else toast('📋 Скопируй адрес вручную: '+location.href)}
+function sysShare(){
+ if(navigator.share){navigator.share({title:'Хомакоин 🐹',text:'Тапай хомяка — собирай хомакоины!',url:location.href})
+  .then(()=>toast('📢 Поделились!')).catch(()=>copyLink())}
+ else copyLink()}
+$('vkShare').onclick=()=>{
+ if(!(window.vkBridge&&typeof vkBridge.send==='function')){sysShare();return}
+ try{const p=vkBridge.send('VKWebAppShare',{link:location.href});
+  withTimeout(p,2500).then(r=>{if(r&&r.result)toast('📢 Шторка VK открылась — выбери «ВКонтакте»!');else if(r===null)sysShare()})}catch(e){sysShare()}};
 /* Топ-10 настоящих игроков: VK сам хранит результаты и рисует имена/аватарки.
    Результат обновляется при каждом открытии окна — всегда актуальный.
    Лимит значения VK: до 2147483647, поэтому с запасом округляем. */
 $('vkBoard').onclick=()=>{if(!(window.vkBridge&&typeof vkBridge.send==='function'))return;
  const res=Math.max(0,Math.min(Math.round(S.earned||0),2147483000));
- try{vkBridge.send('VKWebAppShowLeaderBoardBox',{user_result:res,title:'Топ хомяков 🐹'})
-  .then(r=>{if(r&&!r.result)toast('🏆 Топ недоступен: включи рейтинги в настройках приложения на dev.vk.com')})
-  .catch(()=>toast('🏆 Топ пока недоступен на этом устройстве'))}catch(e){toast('🏆 Топ пока недоступен на этом устройстве')}};
+ try{const p=vkBridge.send('VKWebAppShowLeaderBoardBox',{user_result:res,title:'Топ хомяков 🐹'});
+  withTimeout(p,2500).then(r=>{
+   if(r&&r.result)return;
+   toast(r===null?'🏆 VK молчит на этом устройстве — включи «Рейтинги» в настройках приложения на dev.vk.com':'🏆 Топ недоступен: включи «Рейтинги» в настройках приложения на dev.vk.com')})}catch(e){toast('🏆 Топ пока недоступен на этом устройстве')}};
 
 /* ===== тап-обработчик ===== */
 stage.addEventListener('pointerdown',e=>{
@@ -796,7 +803,7 @@ function givePrize(idx){const pr=SECTORS[idx];
  else{const it=ALL_ITEMS.concat(DECOR).find(x=>x.id===pr.id);
   const dup=S.bought.includes(it.id)||S.decor.includes(it.id);
   if(dup){const comp=Math.round(it.p*.5);S.coins+=comp;S.earned+=comp;
-   $('prizeTxt').textContent=it.e+' уже есть — компенсация +'+fmt(comp)+' 💰 (50%)'}
+   $('prizeTxt').textContent=it.e+' уже есть — компенсация +'+fmt(comp)+' 💰 '}
   else{if(DECOR.some(x=>x.id===it.id)){S.decor.push(it.id)}
    else{if(HEADWEAR.includes(it.id))S.worn=S.worn.filter(w=>!HEADWEAR.includes(w));
     S.bought.push(it.id);S.worn.push(it.id)}
@@ -824,3 +831,4 @@ render();renderAcc();pullCloud();
 </script>
 </body>
 </html>
+
