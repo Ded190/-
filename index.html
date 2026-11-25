@@ -669,16 +669,23 @@ setInterval(updateAdBtn,15000);
 const isVK=/vk\.|userapi/.test(location.hostname)||new URLSearchParams(location.search).has('vk_app_id');
 if(isVK&&window.vkBridge&&typeof vkBridge.send==='function'){
  try{vkBridge.send('VKWebAppInit');$('vkShare').style.display='block';$('vkBoard').style.display='block'}catch(e){}}
-$('vkShare').onclick=()=>{if(window.vkBridge&&typeof vkBridge.send==='function'){
- try{vkBridge.send('VKWebAppShare',{link:location.href})}catch(e){}}};
+$('vkShare').onclick=()=>{if(!(window.vkBridge&&typeof vkBridge.send==='function'))return;
+ try{vkBridge.send('VKWebAppShare',{link:location.href})
+  .then(r=>{if(r&&r.result)toast('📢 Шторка VK открылась — жми «Поделиться»!')})
+  .catch(()=>vkFallback())}catch(e){vkFallback()}};
+/* если шторка не открылась — копируем ссылку в буфер, это работает почти везде */
+function vkFallback(){if(window.vkBridge&&typeof vkBridge.send==='function'){
+ try{vkBridge.send('VKWebAppCopyText',{text:location.href})
+  .then(r=>{if(r&&r.result)toast('📋 Ссылка скопирована — вставь её в пост!')})
+  .catch(()=>toast('📢 VK не дал открыть шторку'))}catch(e){toast('📢 VK не дал открыть шторку')}}}
 /* Топ-10 настоящих игроков: VK сам хранит результаты и рисует имена/аватарки.
    Результат обновляется при каждом открытии окна — всегда актуальный.
    Лимит значения VK: до 2147483647, поэтому с запасом округляем. */
 $('vkBoard').onclick=()=>{if(!(window.vkBridge&&typeof vkBridge.send==='function'))return;
  const res=Math.max(0,Math.min(Math.round(S.earned||0),2147483000));
  try{vkBridge.send('VKWebAppShowLeaderBoardBox',{user_result:res,title:'Топ хомяков 🐹'})
-  .then(r=>{if(r&&!r.result)toast('🏆 Топ пока недоступен — VK отклонил запрос')})
-  .catch(()=>toast('🏆 Топ пока недоступен'))}catch(e){toast('🏆 Топ пока недоступен')}};
+  .then(r=>{if(r&&!r.result)toast('🏆 Топ недоступен: включи рейтинги в настройках приложения на dev.vk.com')})
+  .catch(()=>toast('🏆 Топ пока недоступен на этом устройстве'))}catch(e){toast('🏆 Топ пока недоступен на этом устройстве')}};
 
 /* ===== тап-обработчик ===== */
 stage.addEventListener('pointerdown',e=>{
@@ -803,3 +810,4 @@ render();renderAcc();pullCloud();
 </script>
 </body>
 </html>
+
