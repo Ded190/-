@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Хомакоин</title>
+<script src="/sdk.js"></script>
+<script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js" onerror="0"></script>
+<style>
+:root{--ink:#6b5b7b;--dim:#a58fb8;--gold:#e0a93e;--line:rgba(196,164,214,.35)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{min-height:100%}
+body{font-family:'Segoe UI',system-ui,Roboto,sans-serif;color:var(--ink);user-select:none;
+  background:linear-gradient(160deg,#fdf0e6 0%,#fdeaf2 45%,#eef0fb 100%) fixed;overflow-x:hidden}
+.wrap{max-width:440px;margin:0 auto;padding:14px 12px 40px}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.statLine{display:flex;justify-content:center;gap:14px;margin:0 2px 8px;font-size:12px;color:var(--ink);background:#fff8;border:1px solid var(--line);border-radius:12px;padding:5px 8px;flex-wrap:wrap;text-align:center}
+.cta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.ctaBtn{padding:12px 6px;font-size:14px}
+.boxWrap{position:relative;width:min(60vw,180px);height:min(60vw,180px);margin:10px auto;display:flex;align-items:center;justify-content:center}
+.rays{position:absolute;inset:-35%;border-radius:50%;opacity:0;transition:opacity .3s;background:repeating-conic-gradient(rgba(255,214,79,.8) 0 10deg,rgba(255,214,79,0) 10deg 24deg);pointer-events:none}
+.rays.on{opacity:1;animation:rayspin 7s linear infinite}
+@keyframes rayspin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.boxAnim{font-size:78px;filter:drop-shadow(0 6px 10px rgba(0,0,0,.25));z-index:1;transition:transform .25s}
+.boxAnim.shake{animation:boxshake .12s linear infinite}
+@keyframes boxshake{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
+.boxAnim.opened{transform:scale(1.18) translateY(-4px)}
+.bconf{position:absolute;font-size:24px;z-index:2;animation:confall 1.6s ease-in forwards;pointer-events:none}
+h1{font-size:22px;font-weight:800;color:#c98bb5;text-shadow:0 1px 0 #fff}
+.wallet{background:#fff8;border:1px solid var(--line);border-radius:16px;padding:6px 16px;text-align:right}
+.wallet .v{font-size:22px;font-weight:800;color:var(--gold);font-variant-numeric:tabular-nums}
+.wallet .l{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:1px}
+.stage{position:relative;background:linear-gradient(180deg,#fff9f0,#ffeef6);border:2px solid #fff;
+  border-radius:26px;box-shadow:0 16px 40px rgba(230,180,210,.35);padding:10px;overflow:hidden;cursor:pointer}
+#bgLayer{position:absolute;inset:0;pointer-events:none;z-index:0}
+.hamWrap{position:relative;width:min(60vw,220px);margin:0 auto;z-index:2}
+#ham{display:block;width:100%;transition:transform .1s;animation:breathe 3.2s ease-in-out infinite;transform-origin:50% 60%}
+#ham.spring{animation:pring .3s cubic-bezier(.34,1.6,.64,1)}
+#ham[data-mood="angry"]{animation:shake .45s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
+@keyframes shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-2.4deg)}75%{transform:rotate(2.4deg)}}
+.wear{display:none}
+.wear.on{display:inline}
+#ham .mood{display:none}
+#ham[data-mood="angry"] #m_angry{display:inline}
+#ham[data-mood="angry"] .m-happy{display:none}
+#ham[data-mood="sad"] #m_sad{display:inline}
+#ham[data-mood="sad"] .m-happy{display:none}
+#ham[data-mood="cry"] #m_cry{display:inline}
+#ham[data-mood="cry"] .m-happy{display:none}
+.tear,.tear2{animation:tearfall 1.3s ease-in infinite}
+.tear2{animation-delay:.55s}
+@keyframes tearfall{0%{opacity:0;transform:translateY(0)}25%{opacity:1}100%{opacity:0;transform:translateY(24px)}}
+.confetti{position:absolute;pointer-events:none;font-size:18px;z-index:6;animation:confall 1.6s ease-in forwards}
+@keyframes confall{0%{transform:translateY(-10px) rotate(0);opacity:1}100%{transform:translateY(320px) rotate(360deg);opacity:0}}
+#ham.win{animation:winjump 1.1s ease-in-out}
+@keyframes winjump{0%,100%{transform:translateY(0)}20%{transform:translateY(-26px)}40%{transform:translateY(0)}60%{transform:translateY(-16px)}80%{transform:translateY(0)}}
+/* ===== задний план: поле + небо + солнце/луна ===== */
+#bgLayer .sky{position:absolute;inset:0;background:linear-gradient(#aee1ff,#e3f6ff 55%,#a8dd8e 56%,#8cc972)}
+#bgLayer.night .sky{background:linear-gradient(#141c40,#1d2857 55%,#2c4a2c 56%,#22381f)}
+.blade{position:absolute;bottom:0;width:5px;border-radius:6px;background:#4f9440;transform-origin:bottom;animation:sway 3.5s ease-in-out infinite}
+#bgLayer.night .blade{background:#3f7038}
+@keyframes sway{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}
+.sun{position:absolute;top:7%;right:9%;width:46px;height:46px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3b0,#ffd54f 60%,#f5b942);box-shadow:0 0 24px 10px rgba(255,213,80,.5);animation:sunpulse 4s ease-in-out infinite}
+@keyframes sunpulse{0%,100%{box-shadow:0 0 24px 10px rgba(255,213,80,.45)}50%{box-shadow:0 0 34px 16px rgba(255,213,80,.6)}}
+.moon{position:absolute;top:7%;right:9%;width:42px;height:42px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fff,#dfe6f5 55%,#b9c4dd);box-shadow:0 0 20px 7px rgba(200,215,255,.35);animation:sunpulse 5s ease-in-out infinite}
+.star{position:absolute;width:3px;height:3px;border-radius:50%;background:#fff;animation:twinkle 2.4s ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:.15;transform:scale(.8)}50%{opacity:1;transform:scale(1.3)}}
+.cloud{position:absolute;pointer-events:none;animation:drift linear infinite}
+@keyframes drift{from{transform:translateX(-120px)}to{transform:translateX(460px)}}
+.sndB{position:absolute;bottom:10px;right:10px;padding:7px 12px;font-size:16px;z-index:5}
+#accLayer{position:absolute;inset:0;pointer-events:none;z-index:3}
+.acc{position:absolute;pointer-events:auto;cursor:pointer;font-size:32px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.3))}
+.decor{position:absolute;pointer-events:none;font-size:36px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.35))}
+.decor.big{font-size:128px;opacity:.95;animation:bgbreathe 6s ease-in-out infinite}
+.decor.swayd{animation:swayd 4s ease-in-out infinite alternate;transform-origin:bottom center}
+@keyframes swayd{0%{transform:rotate(-3.5deg)}100%{transform:rotate(3.5deg)}}
+@keyframes bgbreathe{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.035)}}
+#ham.spring{animation:pring .3s cubic-bezier(.34,1.6,.64,1)}
+@keyframes pring{0%{transform:scale(1)}40%{transform:scale(.93) rotate(-1.5deg)}70%{transform:scale(1.04)}100%{transform:scale(1)}}
+.fly{position:absolute;pointer-events:none;font-weight:800;color:var(--gold);text-shadow:0 1px 0 #fff;
+  animation:fly 1s ease-out forwards;font-size:17px}
+@keyframes fly{from{transform:translateY(0) scale(1);opacity:1}
+ to{transform:translateY(-70px) scale(1.25);opacity:0}}
+.coin{position:absolute;pointer-events:none;font-size:19px;animation:coin 1.1s ease-in forwards}
+@keyframes coin{from{transform:translate(0,0) rotate(0);opacity:1}
+ to{transform:translate(var(--dx),90px) rotate(220deg);opacity:0}}
+.cps{position:absolute;top:10px;left:12px;background:#ffffffaa;border-radius:10px;padding:4px 10px;
+ font-size:12px;color:var(--ink);border:1px solid var(--line)}
+.off{position:absolute;top:10px;right:12px;background:#ffffffcc;border-radius:10px;padding:4px 10px;
+ font-size:12px;color:#a06fa0;border:1px solid var(--line);display:none}
+.shop{margin-top:14px}
+.h2{font-size:13px;color:#c98bb5;text-transform:uppercase;letter-spacing:1.4px;margin:14px 0 8px}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.card{background:#fffdf8;border:1px solid var(--line);border-radius:16px;padding:10px 12px;
+ box-shadow:0 4px 14px rgba(210,170,200,.18);transition:transform .12s}
+.card:active{transform:scale(.97)}
+.card .nm{font-size:14px;font-weight:700;color:#a06fa0}
+.card .ds{font-size:11.5px;color:var(--dim);margin:2px 0 6px;line-height:1.35}
+.card .pr{font-size:14px;font-weight:800;color:var(--gold)}
+.card.can{cursor:pointer}
+.card.can .pr{color:#c98b3e}
+.card.no{opacity:.55}
+.card.owned{border-color:#f6c1da;background:#fff5fa}
+.btn{cursor:pointer;border:none;border-radius:12px;font-weight:700;color:#fff;padding:9px 14px;
+ background:linear-gradient(135deg,#f6b7d9,#d9b3f2);box-shadow:0 6px 16px rgba(230,170,215,.4);font-size:13px}
+.btn:active{transform:scale(.95)}
+.btn:disabled{opacity:.45;box-shadow:none}
+.ward{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.wtag{background:#fff5fa;border:1px solid #f6c1da;color:#c77fae;border-radius:99px;padding:4px 10px;font-size:12px;cursor:pointer}
+.wtag.off{background:#fff;border-style:dashed;color:var(--dim)}
+.wheelPad{width:100%;margin-top:10px;padding:12px;font-size:15px}
+.wheelOv{position:fixed;inset:0;background:rgba(90,60,110,.45);z-index:20;display:none;align-items:center;justify-content:center}
+.wheelOv.show{display:flex}
+.wheelBox{background:#fffdf8;border:2px solid #f6c1da;border-radius:26px;padding:16px 14px;text-align:center;max-width:92vw}
+.wheelWrap{position:relative;width:min(80vw,280px);height:min(80vw,280px);margin:10px auto}
+.wheel{width:100%;height:100%;border-radius:50%;border:7px solid #f5c542;box-shadow:0 0 0 3px #b8901e,0 10px 24px rgba(0,0,0,.45);transition:transform 6.5s cubic-bezier(.12,.6,.05,1);position:relative;
+ background:conic-gradient(#c0392b 0 30deg,#1f2547 30deg 60deg,#c0392b 60deg 90deg,#1f2547 90deg 120deg,#c0392b 120deg 150deg,#1f2547 150deg 180deg,#c0392b 180deg 210deg,#1f2547 210deg 240deg,#c0392b 240deg 270deg,#1f2547 270deg 300deg,#c0392b 300deg 330deg,#1f2547 330deg 360deg)}
+.wheel .lbl{position:absolute;left:50%;top:50%;font-size:10.5px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.75);transform-origin:0 0;pointer-events:none}
+.hub{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe9a8,#f5c542 60%,#c9922a);box-shadow:0 3px 8px rgba(0,0,0,.4);z-index:2;display:flex;align-items:center;justify-content:center;font-size:26px}
+.pointer{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:30px;color:#f5c542;z-index:3;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+.prize{font-size:17px;font-weight:800;color:#a06fa0;min-height:24px;margin:8px 0 4px}
+.achT{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(10px);z-index:30;
+ background:#fff;border:2px solid #f6c1da;border-radius:16px;padding:10px 18px;font-weight:700;color:#c77fae;
+ box-shadow:0 10px 26px rgba(210,160,200,.4);opacity:0;pointer-events:none;transition:.3s;font-size:14px;white-space:nowrap;max-width:92vw}
+.achT.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.say{position:absolute;font-size:15px;font-weight:700;color:#a06fa0;background:#fff;border:1.5px solid #f6c1da;border-radius:14px;padding:5px 12px;pointer-events:none;z-index:3;white-space:nowrap;animation:say 1.5s ease-out forwards}
+@keyframes say{0%{opacity:0;transform:translateY(6px)}20%{opacity:1;transform:translateY(0)}80%{opacity:1}100%{opacity:0;transform:translateY(-14px)}}
+.pet{position:absolute;font-size:40px;pointer-events:none;filter:drop-shadow(0 3px 4px rgba(160,110,160,.35))}
+.pet.flypet{font-size:44px}
+.pet.walker{animation:groundwalk var(--gd,5s) ease-in-out infinite}
+@keyframes groundwalk{0%,100%{transform:translateX(-14px) rotate(-4deg)}50%{transform:translateX(14px) rotate(4deg) translateY(-7px)}}
+.pet.flypet{animation:flypath var(--fd,8s) ease-in-out infinite alternate}
+.pet.flypet.flyB{animation-name:flypathB}
+@keyframes flypath{0%{transform:translate(0,0) rotate(-6deg)}30%{transform:translate(34px,-20px) rotate(6deg)}60%{transform:translate(58px,10px) rotate(-4deg)}100%{transform:translate(14px,-8px) rotate(5deg)}}
+@keyframes flypathB{0%{transform:translate(0,0) rotate(6deg)}30%{transform:translate(-34px,-20px) rotate(-6deg)}60%{transform:translate(-58px,10px) rotate(4deg)}100%{transform:translate(-14px,-8px) rotate(-5deg)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>Хомакоин 🐹</h1>
+    <div class="wallet"><div class="v" id="coins">0</div><div class="l">хомакоинов</div></div>
+  </div>
+  <div class="statLine" id="stat">🖐 +1 за тап · ⚡ +0/сек · 🕒 +0/мин</div>
+
+  <div class="stage" id="stage">
+    <div class="cps" id="cps">+0/сек</div>
+    <div class="off" id="offline">Урожай: +<span id="offVal">0</span> 🪙</div>
+    <button class="btn sndB" id="bSnd">🔊</button>
+    <div id="bgLayer"></div>
+    <div class="hamWrap">
+    <svg id="ham" viewBox="0 0 220 210">
+      <defs><linearGradient id="galaxyGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#2b1b5a"/><stop offset=".5" stop-color="#5b3aa8"/><stop offset="1" stop-color="#1b2f5a"/>
+      </linearGradient></defs>
+      <ellipse cx="110" cy="128" rx="82" ry="70" fill="#f6d7b8"/>
+      <ellipse cx="110" cy="150" rx="52" ry="40" fill="#fff3e3"/>
+      <circle cx="66" cy="66" r="19" fill="#f6d7b8"/><circle cx="66" cy="66" r="10" fill="#f4a7c0"/>
+      <circle cx="154" cy="66" r="19" fill="#f6d7b8"/><circle cx="154" cy="66" r="10" fill="#f4a7c0"/>
+      <g class="m-happy">
+      <circle cx="84" cy="106" r="8" fill="#3a2b23"/><circle cx="87" cy="103" r="2.6" fill="#fff"/>
+      <circle cx="136" cy="106" r="8" fill="#3a2b23"/><circle cx="139" cy="103" r="2.6" fill="#fff"/>
+      <ellipse cx="110" cy="124" rx="7" ry="5" fill="#d98a94"/>
+      <path d="M110 128 q-7 8 -14 3 M110 128 q7 8 14 3" stroke="#b3703f" stroke-width="2.5" fill="none" stroke-linecap="round"/></g>
+      <ellipse cx="72" cy="130" rx="12" ry="8" fill="#f7b8c8" opacity=".55"/>
+      <ellipse cx="148" cy="130" rx="12" ry="8" fill="#f7b8c8" opacity=".55"/>
+      <g stroke="#c79b6a" stroke-width="1.6" stroke-linecap="round" opacity=".8">
+        <path d="M40 112 h22 M42 122 h20 M180 112 h-22 M178 122 h-20"/></g>
+      <ellipse cx="82" cy="192" rx="14" ry="9" fill="#f0c49a"/>
+      <ellipse cx="138" cy="192" rx="14" ry="9" fill="#f0c49a"/>
+      <ellipse cx="110" cy="196" rx="10" ry="6" fill="#e8a8c0"/>
+      <g id="g_wings" class="wear">
+        <path d="M34 116 Q20 80 44 68 Q54 96 40 118 Z" fill="#bfe3ff" opacity=".8"/>
+        <path d="M186 116 Q200 80 176 68 Q166 96 180 118 Z" fill="#bfe3ff" opacity=".8"/>
+      </g>
+      <g id="g_hat" class="wear">
+        <ellipse cx="110" cy="46" rx="46" ry="10" fill="#f2b25a"/>
+        <path d="M84 46 q0-26 26-26 q26 0 26 26 z" fill="#f7c56e"/>
+        <rect x="84" y="38" width="52" height="8" rx="4" fill="#e88fb1"/>
+      </g>
+      <g id="g_crown" class="wear">
+        <path d="M84 44 l5-22 10 14 11-18 11 18 10-14 5 22 z" fill="#f5c542" stroke="#d9a520" stroke-width="2"/>
+        <rect x="83" y="42" width="54" height="8" rx="4" fill="#e8ae2e"/>
+      </g>
+      <g id="g_cap" class="wear">
+        <path d="M74 48 a36 30 0 0 1 72 0 z" fill="#4263eb"/>
+        <path d="M74 48 h72" stroke="#3451c9" stroke-width="3"/>
+        <ellipse cx="142" cy="47" rx="30" ry="7" fill="#3451c9"/>
+        <circle cx="110" cy="24" r="3.5" fill="#2f4bc0"/>
+      </g>
+      <g id="g_hat_mage" class="wear">
+        <ellipse cx="110" cy="40" rx="36" ry="9" fill="#2f2f35"/>
+        <rect x="88" y="10" width="44" height="30" rx="5" fill="#3a3a44"/>
+        <rect x="88" y="28" width="44" height="9" fill="#d6455f"/>
+      </g>
+      <g id="g_glasses" class="wear">
+        <circle cx="84" cy="106" r="14" fill="rgba(20,20,30,.25)" stroke="#2d2d3a" stroke-width="3"/>
+        <circle cx="136" cy="106" r="14" fill="rgba(20,20,30,.25)" stroke="#2d2d3a" stroke-width="3"/>
+        <line x1="98" y1="106" x2="122" y2="106" stroke="#2d2d3a" stroke-width="3"/>
+        <line x1="70" y1="106" x2="52" y2="100" stroke="#2d2d3a" stroke-width="3"/>
+        <line x1="150" y1="106" x2="168" y2="100" stroke="#2d2d3a" stroke-width="3"/>
+      </g>
+      <g id="g_headph" class="wear">
+        <path d="M50 66 q60-40 120 0" fill="none" stroke="#4b4b8f" stroke-width="8" stroke-linecap="round"/>
+        <ellipse cx="52" cy="66" rx="10" ry="14" fill="#6c6cc0"/>
+        <ellipse cx="168" cy="66" rx="10" ry="14" fill="#6c6cc0"/>
+      </g>
+      <g id="g_bow" class="wear">
+        <g transform="translate(48,50)">
+          <polygon points="0,0 -14,-9 -14,9" fill="#ef6a93"/>
+          <polygon points="0,0 14,-9 14,9" fill="#ef6a93"/>
+          <circle r="5" fill="#d94f7e"/>
+        </g>
+      </g>
+      <g id="g_bow2" class="wear">
+        <path d="M38 58 q-8-8 0-14 q8 6 0 14z" fill="#f66ba0"/>
+        <path d="M182 58 q8-8 0-14 q-8 6 0 14z" fill="#f66ba0"/>
+      </g>
+      <g id="g_scarf" class="wear">
+        <path d="M60 136 q50 20 100 0 l0 12 q-50 18 -100 0 z" fill="#ef5350"/>
+        <path d="M148 148 q10 16 4 30 l-14-4 q8-12 2-24 z" fill="#e53935"/>
+      </g>
+      <g id="g_tie" class="wear">
+        <polygon points="103,150 117,150 110,159" fill="#3b5bdb"/>
+        <polygon points="110,159 101,167 110,196 119,167" fill="#4263eb"/>
+        <polygon points="110,159 105,167 110,192 115,167" fill="#3451c9"/>
+      </g>
+      <g id="g_medal" class="wear">
+        <polygon points="74,142 86,142 80,158" fill="#e53935"/>
+        <circle cx="80" cy="164" r="9" fill="#f5c542" stroke="#d9a520" stroke-width="2"/>
+      </g>
+      <g id="g_pizza" class="wear">
+        <path d="M92 180 L128 180 L110 198 Z" fill="#f7b267"/>
+        <path d="M92 180 L128 180 L126 186 L94 186 Z" fill="#e8a04c"/>
+        <circle cx="106" cy="186" r="2.6" fill="#d94f4f"/>
+        <circle cx="116" cy="185" r="2.2" fill="#d94f4f"/>
+      </g>
+      <g id="g_galaxy_cape" class="wear">
+        <path d="M50 132 q60 -46 120 0 l0 26 q-60 22 -120 0 z" fill="url(#galaxyGrad)" opacity=".9"/>
+        <circle cx="85" cy="120" r="2.4" fill="#fff"/><circle cx="120" cy="128" r="2" fill="#9fd4ff"/>
+        <circle cx="102" cy="140" r="2.6" fill="#ffe08a"/><circle cx="138" cy="116" r="1.8" fill="#fff"/>
+      </g>
+      <g id="g_halo" class="wear">
+        <ellipse cx="110" cy="12" rx="26" ry="7" fill="none" stroke="#ffd54f" stroke-width="5"/>
+      </g>
+      <g id="m_angry" class="mood">
+        <path d="M72 94 L96 100" stroke="#3a2b23" stroke-width="3.4" stroke-linecap="round"/>
+        <path d="M148 94 L124 100" stroke="#3a2b23" stroke-width="3.4" stroke-linecap="round"/>
+        <ellipse cx="84" cy="108" rx="8" ry="3.4" fill="#3a2b23"/>
+        <ellipse cx="136" cy="108" rx="8" ry="3.4" fill="#3a2b23"/>
+        <path d="M100 134 L120 134" stroke="#3a2b23" stroke-width="3" stroke-linecap="round"/>
+      </g>
+      <g id="m_sad" class="mood">
+        <path d="M72 102 L96 96" stroke="#3a2b23" stroke-width="3.4" stroke-linecap="round"/>
+        <path d="M148 102 L124 96" stroke="#3a2b23" stroke-width="3.4" stroke-linecap="round"/>
+        <path d="M100 136 q10 -8 20 0" stroke="#3a2b23" stroke-width="3" fill="none" stroke-linecap="round"/>
+      </g>
+      <g id="m_cry" class="mood">
+        <path d="M72 102 L96 96" stroke="#3a2b23" stroke-width="3.4" stroke-linecap="round"/>
+        <path d="M148 102 L124 96" stroke="#3a2b23" stroke-width="3.4" stroke-linecap="round"/>
+        <path d="M100 136 q10 -8 20 0" stroke="#3a2b23" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <ellipse class="tear" cx="80" cy="118" rx="4" ry="6" fill="#6fc3f7"/>
+        <ellipse class="tear2" cx="140" cy="118" rx="4" ry="6" fill="#6fc3f7"/>
+      </g>
+    </svg>
+    <div id="accLayer"></div>
+    </div>
+  </div>
+
+  <div class="shop">
+    <div class="cta">
+      <button class="btn ctaBtn" id="bWheel">🎡 Крутить</button>
+      <button class="btn ctaBtn" id="bBox">📦 Коробка дня</button>
+    </div>
+    <button class="btn wheelPad" id="bAd">📺 +5000 хомакоинов за рекламу</button>
+    <button class="btn wheelPad" id="vkShare" style="display:none">📢 Похвастаться в VK</button>
+    <button class="btn wheelPad" id="vkBoard" style="display:none">🏆 Топ игроков</button>
+    <div class="h2">Прокачка</div>
+    <div class="cards">
+      <div class="card can" id="upTap"><div class="nm">💪 Сила тапа <span id="tapLvl"></span></div>
+        <div class="ds">Монеток за тап: <span id="tapVal">1</span></div>
+        <div class="pr" id="tapPr">🪙 15</div></div>
+      <div class="card can" id="upWheel"><div class="nm">🎡 Колесо <span id="whLvl"></span></div>
+        <div class="ds">Пассивный доход: <span id="cps2">0</span>/сек</div>
+        <div class="pr" id="whPr">🪙 50</div></div>
+    </div>
+
+    <div class="h2">Гардероб хомяка <span style="font-size:10px;letter-spacing:0">— тапни по надетому, чтобы снять</span></div>
+    <div class="cards" id="shop"></div>
+    <div class="ward" id="worn"></div>
+    <div class="h2">Дом хомяка <span style="font-size:10px;letter-spacing:0">— покупается навсегда и приносит монетки</span></div>
+    <div class="cards" id="decor"></div>
+    <div class="h2">🎡 Что выпадает с колеса</div>
+    <div class="ward" id="wheelList"></div>
+    <div class="h2">🏆 Ачивки</div>
+    <div class="ward" id="achs"></div>
+  </div>
+</div>
+<div class="wheelOv" id="wheelOv">
+  <div class="wheelBox">
+    <div style="font-weight:800;color:#c98bb5;font-size:18px">Колесо удачи ✦</div>
+    <div class="wheelWrap"><div class="wheel" id="wheel"><div class="hub">🐹</div></div><div class="pointer">▼</div></div>
+    <div class="prize" id="prizeTxt">&nbsp;</div>
+    <button class="btn" id="spinBtn">Крутить за 1000 🪙</button><br>
+    <button class="btn" id="closeWheel" style="margin-top:8px;opacity:.75">Закрыть</button>
+  </div>
+</div>
+<div class="wheelOv" id="boxOv">
+  <div class="wheelBox">
+    <div style="font-weight:800;color:#c98bb5;font-size:18px">Коробка дня 📦</div>
+    <div class="boxWrap"><div class="rays" id="boxRays"></div><div class="boxAnim" id="boxAnim">📦</div></div>
+    <div class="prize" id="boxTxt">Тапни по коробке!</div>
+    <button class="btn" id="openBoxBtn" data-state="ready">Открыть</button><br>
+    <button class="btn" id="closeBox" style="margin-top:8px;opacity:.75">Закрыть</button>
+  </div>
+</div>
+<div class="wheelOv" id="adOv">
+  <div class="wheelBox">
+    <div style="font-size:56px">📺</div>
+    <div style="font-weight:800;color:#c98bb5;font-size:18px">Смотрим рекламу…</div>
+    <div class="prize" id="adOvN">+5000 хомакоинов через 3…</div>
+  </div>
+</div>
+<div class="achT" id="achT"></div>
+<script>
+'use strict';
+/* ===== данные ===== */
+const WARDROBE=[
+ {id:'hat',    e:'👒', n:'Летняя шляпка',  top:'-4%', left:'50%', x:-50, p:130,   d:'+1 🪙 за тап и +0.3/сек', tap:1, cps:.3},
+ {id:'bow',    e:'🎀', n:'Бантик',         top:'5%',  left:'20%', x:0,   p:325,   d:'+0.5/сек — бездонно мило', cps:.5},
+ {id:'glasses',e:'🕶️',n:'Крутые очки',    top:'31%', left:'50%', x:-50, p:780,   d:'+3 🪙 за тап', tap:3},
+ {id:'scarf',  e:'🧣', n:'Шарфик',         top:'63%', left:'50%', x:-50, p:1560,  d:'+1/сек — тепло и стильно', cps:1},
+ {id:'crown',  e:'👑', n:'Корона',         top:'-7%', left:'50%', x:-50, p:3900,  d:'+8 🪙 за тап', tap:8},
+ {id:'headph', e:'🎧', n:'Наушники',       top:'29%', left:'50%', x:-50, p:7800,  d:'+3/сек — басы прямо в ушки', cps:3},
+ {id:'bow2',   e:'💞', n:'Сердечки-бантики',top:'3%',  left:'22%', x:0,   p:15600, d:'+5/сек — двойная нежность', cps:5},
+ {id:'tie',    e:'👔', n:'Галстук джентльмена',top:'48%',left:'50%',x:-50,p:6500, d:'+2 🪙 за тап — деловой хомяк', tap:2},
+ {id:'cap',    e:'🧢', n:'Кепка бейсболиста',top:'-16%',left:'50%',x:-50,p:10400, d:'+3 🪙 за тап — свежо', tap:3},
+ {id:'medal',  e:'🥇', n:'Медаль первенца', top:'44%', left:'73%', x:0,   p:24000, d:'+5 🪙 за тап — заслуженно', tap:5},
+ {id:'pizza',  e:'🍕', n:'Ломтик пиццы',   top:'70%', left:'64%', x:0,   p:32500, d:'+20 🪙 за тап — любимое лакомство', tap:20}];
+/* предметы интерьера — покупаются навсегда, приносят пассив; b — от нижнего края «пола» */
+const DECOR=[
+ {id:'flower', e:'🌼', n:'Цветочек в горшке',  left:'11%', b:'11%', p:4000,  d:'+0.5/сек — уют',              cps:.5, sw:1},
+ {id:'basket', e:'🧺', n:'Корзинка лакомств',  left:'89%', b:'8%',  p:9000,  d:'+1/сек — вкусняшки на потом', cps:1},
+ {id:'cactus', e:'🪴', n:'Кактусик-друг',      left:'23%', b:'9%',  p:16000, d:'+1.5/сек — колючий компаньон',cps:1.5,sw:1},
+ {id:'cheese', e:'🧀', n:'Сырная кладовка',    left:'44%', b:'10%', p:25000,  d:'+3/сек — стратегический запас', cps:3},
+ {id:'house',  e:'🏠', n:'Домик-нора',         left:'16%', b:'2%',  p:40000,  d:'+2.5/сек — большая нора за хомяком', cps:2.5, bg:1},
+ {id:'tree',   e:'🌳', n:'Куст-укрытие',       left:'68%', b:'10%', p:60000,  d:'+4/сек — лесной уют',          cps:4, sw:1},
+ {id:'piggy',  e:'🐷', n:'Копилка-свинка',     left:'33%', b:'8%',  p:100000, d:'+6/сек — копит за вас',        cps:6},
+ {id:'fountain',e:'⛲', n:'Фонтан желаний',     left:'57%', b:'9%',  p:1000000,d:'+80/сек — загадай желание',    cps:80},
+ {id:'castle',  e:'🏰', n:'Замок хомяка',       left:'50%', b:'14%', p:1500000,d:'+150/сек — королевский особняк',cps:150,bg:1}];
+/* питомцы — только с колеса удачи */
+const PETS={
+ turtle:{e:'🐢',n:'Черепаха Тиша', cps:1, dup:2000,   pos:{left:'4%', bot:'4%'}},
+ rabbit:{e:'🐰',n:'Кролик Пушок',  cps:3, dup:4500,   pos:{left:'76%',bot:'4%'}},
+ cat:   {e:'🐱',n:'Кошечка Мурка', cps:5, dup:10000,  pos:{left:'30%',bot:'3%'}},
+ dog:   {e:'🐕',n:'Щенок Барбос',  cps:7, dup:15000,  pos:{left:'56%',bot:'3%'}},
+ parrot:{e:'🦜',n:'Попугай Кеша',  cps:9, dup:22500,  pos:{left:'66%',top:'14%'},fly:1},
+ dragon:{e:'🐉',n:'Дракончик Шип', cps:20,dup:60000,  pos:{left:'8%', top:'9%'}, fly:1},
+ unicorn:{e:'🦄',n:'Единорог Пелька',cps:35,dup:150000,pos:{left:'82%',top:'26%'},fly:1}};
+/* уникальные вещи — только с колеса, в магазине не продаются */
+const UNIQS=[
+ {id:'hat_mage',e:'🎩',n:'Цилиндр-фокусник',d:'+4 🪙 за тап · только с колеса',tap:4,p:8000},
+ {id:'wings',   e:'🦋',n:'Крылышки бабочки',d:'+4/сек · только с колеса',cps:4,p:12000}];
+/* вещи, которые только из коробки дня — в магазине и на колесе их нет */
+const BOX_ONLY=[
+ {id:'galaxy_cape',e:'🌌',n:'Плащ галактики',d:'+30/сек · только из коробки',cps:30,p:60000},
+ {id:'halo',      e:'😇',n:'Нимб усердия',   d:'+15/сек · только из коробки',cps:15,p:30000}];
+const SLOTS=['100','👒','200','🎀','300','🕶️','1500','🐾','🧣','10К','50К','100К','1Б'];
+const SECTORS=[{t:'coins',v:100},{t:'item',id:'hat'},{t:'coins',v:200},{t:'item',id:'bow'},{t:'coins',v:300},{t:'item',id:'glasses'},
+ {t:'coins',v:1500},{t:'pet'},{t:'item',id:'scarf'},{t:'coins',v:10000},{t:'coins',v:50000},{t:'coins',v:100000},{t:'coins',v:1000000000}];
+const WEIGHTS=[12.89,11.5,12.89,11.5,12.89,11.5,6,5.95,11.5,2,1,0.05,0.33];
+const HEADWEAR=['crown','cap','hat_mage'];
+const spinCost=()=>Math.round(S.spinPrice||1000);
+const SAYS=['Пи-пи!','Мням-ням!','Ещё хомакоинов!','Тап-тап!','Так вкусно!','Золотце моё!','Хомяк не спит!','Ням, хомакоины!'];
+const ALL_ITEMS=WARDROBE.concat(UNIQS).concat(BOX_ONLY);
+const $=id=>document.getElementById(id);
+/* безопасное хранилище: внутри VK-iframe localStorage бывает запрещён */
+const store={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
+let S={coins:0,tap:1,tapLvl:0,wheel:0,wheelLvl:0,bought:[],worn:[],last:Date.now(),taps:0,earned:0,spins:0,pets:[],achs:[]};
+try{S=Object.assign(S,JSON.parse(store.get('hamsterSave')||'{}'))}catch(e){}
+S.bought=S.bought||[];S.worn=S.worn||[];S.pets=S.pets||[];S.achs=S.achs||[];S.decor=S.decor||[];
+S.taps=S.taps||0;S.earned=S.earned||0;S.spins=S.spins||0;S.decor=S.decor||[];S.spinPrice=S.spinPrice||100;
+if(!store.get('spinReset1')){S.spinPrice=100;store.set('spinReset1','1')}
+
+/* ===== коробка дня: раз в сутки; 50% монеты · 10% буст ×2/2ч · 40% редкости ===== */
+const todayStr=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+function boxReady(){return S.boxDay!==todayStr()}
+let boxTimer=null;
+function toast(msg){const t=$('achT');t.textContent=msg;t.classList.remove('show');void t.offsetWidth;
+ t.classList.add('show');clearTimeout(boxTimer);boxTimer=setTimeout(()=>t.classList.remove('show'),2800)}
+function openBoxAward(){S.boxDay=todayStr();S.boxOpen=(S.boxOpen||0)+1;
+ const r=Math.random()*100;let msg;
+ if(r<50){const tiers=[100,500,1000,5000],probs=[20,15,10,5];
+  let acc=0,pick=tiers[0];for(let i=0;i<4;i++){acc+=probs[i];if(r<acc){pick=tiers[i];break}}
+  S.coins+=pick;S.earned+=pick;msg='📦 Из коробки: 🪙 +'+fmt(pick)+'!'}
+ else if(r<60){S.boostUntil=Date.now()+2*3600*1000;msg='📦 Ускорение ⚡×2 на 2 часа!'}
+ else{if(Math.random()<.5){const keys=Object.keys(PETS);const pid=keys[Math.random()*keys.length|0];const p=PETS[pid];
+   if(S.pets.includes(pid)){S.coins+=p.dup;S.earned+=p.dup;msg='📦 '+p.e+' уже дома — компенсация +'+fmt(p.dup)+' 🪙'}
+   else{S.pets.push(pid);renderAcc();msg='📦 Новый друг: '+p.e+' '+p.n+'! +'+p.cps+'/сек'}}
+  else{const pool=UNIQS.concat(BOX_ONLY);const it=pool[Math.random()*pool.length|0];
+   if(S.bought.includes(it.id)){const comp=Math.round((it.p||20000)*.5);S.coins+=comp;S.earned+=comp;
+    msg='📦 '+it.e+' уже есть — компенсация +'+fmt(comp)+' 🪙'}
+   else{if(HEADWEAR.includes(it.id))S.worn=S.worn.filter(w=>!HEADWEAR.includes(w));
+    S.bought.push(it.id);S.worn.push(it.id);renderAcc();
+    msg='📦 Редкость: '+it.e+' '+it.n+'!'}}}
+ return msg}
+$('bBox').onclick=()=>{if(!boxReady())return;
+ const btn=$('openBoxBtn');btn.dataset.state='ready';btn.textContent='Открыть';btn.disabled=false;
+ $('boxAnim').classList.remove('opened');$('boxRays').classList.remove('on');
+ $('boxTxt').textContent='Тапни по коробке!';
+ $('boxOv').classList.add('show')};
+$('closeBox').onclick=()=>{$('boxOv').classList.remove('show');$('boxRays').classList.remove('on');render()};
+$('openBoxBtn').onclick=()=>{const btn=$('openBoxBtn');
+ if(btn.dataset.state==='opening')return;
+ if(btn.dataset.state==='claim'){$('boxOv').classList.remove('show');$('boxRays').classList.remove('on');render();save();return}
+ btn.dataset.state='opening';btn.disabled=true;
+ $('boxAnim').classList.add('shake');
+ for(let i=0;i<8;i++)setTimeout(()=>beep(480+Math.random()*300,.05,'square'),i*110);
+ setTimeout(()=>{$('boxAnim').classList.remove('shake');$('boxAnim').classList.add('opened');
+  $('boxRays').classList.add('on');playJingle();
+  const ov=$('boxOv');
+  for(let i=0;i<20;i++){const c=document.createElement('span');c.className='bconf';
+   c.textContent=['🎉','✨','🪙','💫'][Math.random()*4|0];
+   c.style.left=(10+Math.random()*80)+'%';c.style.top=(18+Math.random()*30)+'%';
+   c.style.animationDelay=(Math.random()*.3)+'s';ov.appendChild(c);setTimeout(()=>c.remove(),1800)}
+  const msg=openBoxAward();
+  $('boxTxt').textContent=msg;
+  checkAch();save();
+  btn.dataset.state='claim';btn.disabled=false;btn.textContent='Забрать ✨'},950)};
+
+/* ===== расчёты ===== */
+const tapPrice=()=>Math.round(15*Math.pow(1.7,S.tapLvl)*1.3);
+const wheelPrice=()=>Math.round(50*Math.pow(1.8,S.wheelLvl));
+function boostOn(){return S.boostUntil&&Date.now()<S.boostUntil?2:1}
+function cps(){let c=S.wheel*0.5;
+ for(const w of S.worn){const it=ALL_ITEMS.find(x=>x.id===w);if(it&&it.cps)c+=it.cps}
+ for(const pid of S.pets)if(PETS[pid])c+=PETS[pid].cps;
+ for(const did of S.decor){const it=DECOR.find(x=>x.id===did);if(it)c+=it.cps}
+ return Math.round(c*boostOn()*10)/10}
+function tapGain(){let g=S.tap*boostOn();
+ for(const w of S.worn){const it=ALL_ITEMS.find(x=>x.id===w);if(it&&it.tap)g+=it.tap*boostOn()}
+ return g}
+
+/* ===== сохранение: локально всегда, в VK — ещё и в облако VK ===== */
+let saveT=0;
+function save(){S.last=Date.now();store.set('hamsterSave',JSON.stringify(S));pushCloud()}
+/* облачный сейв VK: до 4096 байт на ключ — наш прогресс влезает;
+   отправка не чаще раза в 8 сек, при уходе со страницы — принудительно */
+let vkCloud=false,cloudDirty=false,cloudT=0;
+function pullCloud(){if(!(isVK&&window.vkBridge&&typeof vkBridge.send==='function'))return;
+ try{vkBridge.send('VKWebAppStorageGet',{keys:['hamakoin_save']}).then(r=>{
+  const raw=r&&r.keys&&r.keys[0]&&r.keys[0].value;
+  if(raw){try{const C=JSON.parse(raw);
+   if(C&&typeof C==='object'&&C.last){
+    /* побеждает самый свежий сохранённый прогресс */
+    if(C.last>(S.last||0)){S=Object.assign(S,C);renderAcc();render()}}
+  }catch(e){}}
+  vkCloud=true}).catch(()=>{vkCloud=true})}catch(e){}}
+function pushCloud(){if(!vkCloud)return;
+ if(Date.now()-cloudT<8000){cloudDirty=true;return}
+ cloudT=Date.now();cloudDirty=false;
+ try{vkBridge.send('VKWebAppStorageSet',{key:'hamakoin_save',value:JSON.stringify(S)})}catch(e){}}
+function flushCloud(){if(!cloudDirty)return;cloudDirty=false;cloudT=Date.now();
+ try{vkBridge.send('VKWebAppStorageSet',{key:'hamakoin_save',value:JSON.stringify(S)})}catch(e){}}
+setInterval(()=>{if(document.hidden)return;flushCloud()},15000)
+
+/* ===== UI ===== */
+function fmt(n){return n>=1e9?(n/1e9).toFixed(2)+'Б':n>=1e6?(n/1e6).toFixed(1)+'М':n>=1e4?(n/1e3).toFixed(1)+'К':Math.floor(n)}
+function render(){$('coins').textContent=fmt(S.coins);
+ $('cps').textContent='+'+cps()+'/сек';
+ $('tapLvl').textContent=S.tapLvl?'ур.'+S.tapLvl:'';
+ $('tapVal').textContent=tapGain();
+ $('tapPr').textContent='🪙 '+fmt(tapPrice());
+ $('whLvl').textContent=S.wheelLvl?'ур.'+S.wheelLvl:'';
+ $('cps2').textContent=cps();
+ $('whPr').textContent='🪙 '+fmt(wheelPrice());
+ $('upTap').classList.toggle('no',S.coins<tapPrice());
+ $('upWheel').classList.toggle('no',S.coins<wheelPrice());
+ /* магазин одежды */
+ $('shop').innerHTML='';
+ for(const it of WARDROBE){
+  const d=document.createElement('div');d.className='card';
+  const owned=S.bought.includes(it.id);
+  d.innerHTML=`<div class="nm">${it.e} ${it.n}</div><div class="ds">${it.d}</div>
+   <div class="pr">${owned?(S.worn.includes(it.id)?'надето · тап — снять':'в гардеробе'):'🪙 '+fmt(it.p)}</div>`;
+  if(!owned)d.classList.add(S.coins>=it.p?'can':'no');
+  if(owned)d.classList.add('owned');
+  d.onclick=()=>{if(!owned){if(S.coins<it.p)return;S.coins-=it.p;S.bought.push(it.id);
+   if(HEADWEAR.includes(it.id))S.worn=S.worn.filter(w=>!HEADWEAR.includes(w));
+   S.worn.push(it.id)}
+   else{const i=S.worn.indexOf(it.id);i>=0?S.worn.splice(i,1):S.worn.push(it.id)}
+   renderAcc();render();save()};
+  $('shop').appendChild(d)}
+ /* надетое */
+ $('worn').innerHTML='';
+ for(const w of S.worn){const it=ALL_ITEMS.find(x=>x.id===w)||{e:'✨'};
+  const b=document.createElement('span');b.className='wtag';b.textContent=it.e+' снять';
+  b.onclick=()=>{S.worn.splice(S.worn.indexOf(w),1);renderAcc();render();save()};
+  $('worn').appendChild(b)}
+ /* дом хомяка — интерьер */
+ $('decor').innerHTML='';
+ for(const it of DECOR){
+  const d=document.createElement('div');d.className='card';
+  const owned=S.decor.includes(it.id);
+  d.innerHTML=`<div class="nm">${it.e} ${it.n}</div><div class="ds">${it.d}</div>
+   <div class="pr">${owned?'стоит на сцене':'🪙 '+fmt(it.p)}</div>`;
+  if(!owned)d.classList.add(S.coins>=it.p?'can':'no');
+  if(owned)d.classList.add('owned');
+  d.onclick=()=>{if(owned||S.coins<it.p)return;S.coins-=it.p;S.decor.push(it.id);
+   renderAcc();render();save()};
+  $('decor').appendChild(d)}
+ /* кнопки: крутить и коробка — рядом, реклама ниже */
+ $('bWheel').disabled=S.coins<spinCost();
+ $('bWheel').textContent='🎡 Крутить — '+fmt(spinCost())+' 🪙';
+ const bx=$('bBox');
+ bx.disabled=!boxReady();
+ bx.textContent=boxReady()?'📦 Открыть коробку':'📦 Завтра';
+ $('achs').innerHTML='';
+ for(const a of ACH){const has=S.achs.includes(a.id);
+  const b=document.createElement('span');b.className='wtag'+(has?'':' off');
+  b.textContent=(has?a.c+' ':'🔒 ')+a.n;$('achs').appendChild(b)}
+ /* что выпадает с колеса: цифры и предметы, без шансов */
+ $('wheelList').innerHTML='';
+ for(const s of SECTORS){const w=document.createElement('span');w.className='wtag off';
+  const it=s.t==='item'?(ALL_ITEMS.concat(DECOR).find(x=>x.id===s.id)):null;
+  w.textContent=s.t==='coins'?('🪙 '+fmt(s.v)):(s.t==='pet'?'🐾 Новый питомец':(it.e+' '+it.n));
+  $('wheelList').appendChild(w)}}
+function renderAcc(){for(const e of Array.from($('bgLayer').querySelectorAll('.bgdecor')))e.remove();
+ const l=$('accLayer');l.innerHTML='';
+ for(const did of S.decor){const it=DECOR.find(x=>x.id===did);if(!it)continue;
+  const s=document.createElement('span');s.className='decor';s.textContent=it.e;
+  s.style.left=it.left;s.style.bottom=it.b;s.style.top='auto';
+  if(it.sw)s.classList.add('swayd');
+  if(it.bg){s.classList.add('big','bgdecor');
+   $('bgLayer').appendChild(s)}else l.appendChild(s)}
+ S.pets.forEach(pid=>{const p=PETS[pid];if(!p)return;
+  const s=document.createElement('span');s.className='pet';s.textContent=p.e;
+  const q=p.pos;if(!q)return;
+  if(p.fly){s.classList.add('flypet');s.style.left=q.left;s.style.top=q.top;
+   if(parseFloat(q.left)>50)s.classList.add('flyB')}
+  else{s.classList.add('walker');s.style.left=q.left;s.style.bottom=q.bot}
+  s.style.setProperty(p.fly?'--fd':'--gd',(p.fly?(7+Math.random()*4):(4.5+Math.random()*3))+'s');
+  s.style.animationDelay=(-Math.random()*3)+'s';
+  l.appendChild(s)});
+ syncWear()}
+/* одежда — теперь слои самого хомяка */
+function syncWear(){
+ for(const it of WARDROBE.concat(UNIQS).concat(BOX_ONLY)){const el=document.getElementById('g_'+it.id);
+  if(el)el.classList.toggle('on',S.worn.includes(it.id))}}
+
+/* ===== звуки хомяка (синтез, без файлов) ===== */
+let sndOn=S.snd!==false;let ac=null;
+function beep(f,d,type,f2){if(!sndOn)return;
+ try{if(!ac)ac=new (window.AudioContext||window.webkitAudioContext)();
+  const o=ac.createOscillator(),g=ac.createGain();
+  o.type=type||'sine';o.frequency.setValueAtTime(f,ac.currentTime);
+  if(f2)o.frequency.exponentialRampToValueAtTime(f2,ac.currentTime+d);
+  g.gain.setValueAtTime(.09,ac.currentTime);
+  g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d);
+  o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}}
+function playMood(m){
+ if(m==='angry')beep(150,.18,'sawtooth',90);
+ else if(m==='sad')beep(520,.4,'sine',260);
+ else if(m==='cry'){beep(560,.22,'sine',280);
+  setTimeout(()=>beep(500,.25,'sine',240),320)}}
+
+/* ===== настроение по времени простоя ===== */
+let curMood='happy',lastTap=Date.now();
+function setMood(m){curMood=m;$('ham').dataset.mood=m}
+setInterval(()=>{if(document.hidden)return;
+ const idle=Date.now()-lastTap;
+ const m=idle<15000?'happy':idle<35000?'angry':idle<70000?'sad':'cry';
+ if(m!==curMood){setMood(m);playMood(m)}},1000);
+
+/* ===== ачивки ===== */
+const ACH=[
+ {id:'tap1',    c:'👋',n:'Первый тап',        cond:()=>S.taps>=1},
+ {id:'tap100',  c:'👊',n:'100 тапов',          cond:()=>S.taps>=100},
+ {id:'first',   c:'👒',n:'Первая вещь',        cond:()=>S.bought.length>=1},
+ {id:'full',    c:'👗',n:'Полный гардероб',    cond:()=>S.bought.filter(x=>WARDROBE.some(w=>w.id===x)).length>=8},
+ {id:'coins10k',c:'💰',n:'10 000 хомакоинов',     cond:()=>S.earned>=10000},
+ {id:'spin1',   c:'🎡',n:'Первое колесо',      cond:()=>S.spins>=1},
+ {id:'pet',     c:'🐾',n:'Друг рядом',         cond:()=>S.pets.length>=1},
+ {id:'uniq',    c:'✨',n:'Редкость с колеса',  cond:()=>UNIQS.some(u=>S.bought.includes(u.id))},
+ {id:'hundred', c:'👑',n:'100 000 хомакоинов',    cond:()=>S.earned>=100000},
+ {id:'box1',    c:'📦',n:'Открыватель коробок',  cond:()=>(S.boxOpen||0)>=1},
+ {id:'billion', c:'💎',n:'Миллиард добыт',       cond:()=>S.earned>=1e9}];
+let achTimer=null;
+function checkAch(){let any=false;
+ for(const a of ACH)if(!S.achs.includes(a.id)&&a.cond()){S.achs.push(a.id);any=true;
+  const t=$('achT');t.textContent='🏆 '+a.c+' Ачивка: '+a.n;
+  t.classList.remove('show');void t.offsetWidth;t.classList.add('show');
+  clearTimeout(achTimer);achTimer=setTimeout(()=>t.classList.remove('show'),2800)}
+ if(any){render();save()}}
+
+/* ===== тап ===== */
+const stage=$('stage');
+/* ===== небо: день/ночь по часам; солнце с облаками или луна со звёздами ===== */
+function buildSky(){const bg=$('bgLayer');
+ if(bg.dataset.sky)return;
+ bg.dataset.sky='1';
+ const h=new Date().getHours(),night=(h>=19||h<7);
+ if(night)bg.classList.add('night');
+ const sky=document.createElement('div');sky.className='sky';bg.appendChild(sky);
+ if(night){for(let i=0;i<13;i++){const s=document.createElement('span');s.className='star';
+  s.style.left=(3+Math.random()*94)+'%';s.style.top=(4+Math.random()*40)+'%';
+  s.style.animationDelay=(Math.random()*2.4)+'s';
+  s.style.animationDuration=(1.8+Math.random()*1.6)+'s';bg.appendChild(s)}
+  const m=document.createElement('span');m.className='moon';bg.appendChild(m)}
+ else{const sun=document.createElement('span');sun.className='sun';bg.appendChild(sun);
+  for(let i=0;i<3;i++){const c=document.createElement('span');c.className='cloud';c.textContent='☁️';
+   c.style.top=(3+i*7)+'%';c.style.fontSize=(22+i*9)+'px';
+   c.style.animationDuration=(45+i*20)+'s';c.style.animationDelay=-(i*15)+'s';bg.appendChild(c)}}
+ for(let i=0;i<10;i++){const b=document.createElement('span');b.className='blade';
+  b.style.left=(2+Math.random()*96)+'%';b.style.height=(12+Math.random()*20)+'px';
+  b.style.animationDelay=(Math.random()*3.5)+'s';
+  b.style.animationDuration=(3+Math.random()*2)+'s';bg.appendChild(b)}}
+buildSky();
+
+/* ===== SDK Яндекс Игр + реклама с вознаграждением: +5000 раз в 30 минут ===== */
+const AD_REWARD=5000,AD_COOLDOWN=30*60*1000;
+let ysdk=null,gameplayOn=false;
+function sdkReady(sdk){ysdk=sdk;updateAdBtn();
+ try{ysdk.features.LoadingAPI&&ysdk.features.LoadingAPI.ready()}catch(e){}}
+function gameplayStart(){if(ysdk&&!gameplayOn){gameplayOn=true;
+ try{ysdk.features.GameplayAPI&&ysdk.features.GameplayAPI.start()}catch(e){}}}
+function gameplayStop(){if(ysdk&&gameplayOn){gameplayOn=false;
+ try{ysdk.features.GameplayAPI&&ysdk.features.GameplayAPI.stop()}catch(e){}}}
+document.addEventListener('visibilitychange',()=>{document.hidden?(gameplayStop(),save(),flushCloud()):gameplayStart()});
+(function initYSDK(){
+ if(window.YaGames){window.YaGames.init().then(sdkReady).catch(()=>{})}
+ else{const s=document.createElement('script');s.src='https://yandex.ru/games/sdk/v2';
+  s.onload=()=>{try{YaGames.init().then(sdkReady).catch(()=>{})}catch(e){}};
+  s.onerror=()=>{};document.head.appendChild(s)}})();
+function adReady(){return Date.now()-(S.lastAd||0)>=AD_COOLDOWN}
+function updateAdBtn(){const b=$('bAd');if(!b||b.style.display==='none')return;
+ if(adReady()){b.disabled=false;b.textContent='📺 +'+fmt(AD_REWARD)+' хомакоинов за рекламу'}
+ else{const left=Math.ceil((AD_COOLDOWN-(Date.now()-(S.lastAd||0)))/60000);
+  b.disabled=true;b.textContent='📺 Реклама будет через '+left+' мин'}}
+function giveAd(){S.coins+=AD_REWARD;S.earned+=AD_REWARD;S.lastAd=Date.now();save();
+ const ham=$('ham');ham.classList.remove('win');void ham.offsetWidth;ham.classList.add('win');
+ playJingle();updateAdBtn();render();checkAch()}
+let sndSaved=true;
+function muteAd(on){if(on){sndSaved=sndOn;sndOn=false}
+ else{sndOn=sndSaved;$('bSnd').textContent=sndOn?'🔊':'🔇'}}
+$('bAd').onclick=()=>{if(!adReady()){
+  const left=Math.ceil((AD_COOLDOWN-(Date.now()-(S.lastAd||0)))/60000);
+  toast('📺 Реклама будет через '+left+' мин');return}
+ $('bAd').disabled=true;$('bAd').textContent='📺 Реклама идёт...';
+ /* настоящий ролик — только на платформе Яндекса; вне её и при сбое SDK — эмуляция с оверлеем */
+ const onPlatform=/yandex/.test(location.hostname);
+ if(ysdk&&onPlatform){muteAd(true);
+  try{ysdk.adv.showRewardedVideo({callbacks:{
+   onRewarded:()=>{muteAd(false);giveAd()},
+   onClose:()=>{muteAd(false);updateAdBtn()},
+   onError:()=>{muteAd(false);updateAdBtn()}}})}
+  catch(e){muteAd(false);emulateAd()}}
+ else emulateAd()};
+function emulateAd(){$('adOv').classList.add('show');muteAd(true);
+ let n=3;$('adOvN').textContent='+5000 хомакоинов через 3…';
+ const iv=setInterval(()=>{n--;
+  if(n<=0){clearInterval(iv);$('adOv').classList.remove('show');muteAd(false);giveAd()}
+  else $('adOvN').textContent='+5000 хомакоинов через '+n+'…'},1000)}
+setInterval(updateAdBtn,15000);
+
+/* ===== VK Bridge: инициализация в мини-приложении и «Похвастаться» ===== */
+const isVK=/vk\.|userapi/.test(location.hostname)||new URLSearchParams(location.search).has('vk_app_id');
+if(isVK&&window.vkBridge&&typeof vkBridge.send==='function'){
+ try{vkBridge.send('VKWebAppInit');$('vkShare').style.display='block';$('vkBoard').style.display='block'}catch(e){}}
+$('vkShare').onclick=()=>{if(window.vkBridge&&typeof vkBridge.send==='function'){
+ try{vkBridge.send('VKWebAppShare',{link:location.href})}catch(e){}}};
+/* Топ-10 настоящих игроков: VK сам хранит результаты и рисует имена/аватарки.
+   Результат обновляется при каждом открытии окна — всегда актуальный.
+   Лимит значения VK: до 2147483647, поэтому с запасом округляем. */
+$('vkBoard').onclick=()=>{if(!(window.vkBridge&&typeof vkBridge.send==='function'))return;
+ const res=Math.max(0,Math.min(Math.round(S.earned||0),2147483000));
+ try{vkBridge.send('VKWebAppShowLeaderBoardBox',{user_result:res,title:'Топ хомяков 🐹'})
+  .then(r=>{if(r&&!r.result)toast('🏆 Топ пока недоступен — VK отклонил запрос')})
+  .catch(()=>toast('🏆 Топ пока недоступен'))}catch(e){toast('🏆 Топ пока недоступен')}};
+
+/* ===== тап-обработчик ===== */
+stage.addEventListener('pointerdown',e=>{
+ gameplayStart();
+ const g=tapGain();
+ S.coins+=g;S.taps++;S.earned+=g;lastTap=Date.now();
+ if(curMood!=='happy')setMood('happy');
+ beep(860+Math.random()*280,.08,'sine',1400);
+ const ham=$('ham');ham.classList.remove('spring');void ham.offsetWidth;ham.classList.add('spring');
+ const r=stage.getBoundingClientRect();
+ const fx=e.clientX-r.left,fy=e.clientY-r.top;
+ if(Math.abs(fx)>4||Math.abs(fy)>4){
+  const f=document.createElement('span');f.className='fly';f.textContent='+'+fmt(g)+' 🪙';
+  f.style.left=fx+'px';f.style.top=fy+'px';stage.appendChild(f);
+  setTimeout(()=>f.remove(),1000)}
+ for(let i=0;i<3;i++){const c=document.createElement('span');c.className='coin';c.textContent='🪙';
+  c.style.left=(e.clientX-r.left-10+Math.random()*20-10)+'px';c.style.top=fy+'px';
+  c.style.setProperty('--dx',(Math.random()*60-30)+'px');
+  stage.appendChild(c);setTimeout(()=>c.remove(),1100)}
+ if(Math.random()<0.15){const sy=document.createElement('span');sy.className='say';
+  sy.textContent=SAYS[Math.random()*SAYS.length|0];
+  sy.style.left=(14+Math.random()*44)+'%';sy.style.top='4%';
+  stage.appendChild(sy);setTimeout(()=>sy.remove(),1500)}
+ render();checkAch();save()});
+$('upTap').onclick=()=>{const p=tapPrice();if(S.coins<p)return;
+ S.coins-=p;S.tapLvl++;S.tap++;render();checkAch();save()};
+$('upWheel').onclick=()=>{const p=wheelPrice();if(S.coins<p)return;
+ S.coins-=p;S.wheelLvl++;S.wheel++;render();checkAch();save()};
+
+/* ===== колесо удачи: 13 секторов, цена растёт на 10% после каждой крутки ===== */
+let curA=0,spinning=false;
+function rollSector(){let r=Math.random()*100,acc=0;
+ for(let i=0;i<WEIGHTS.length;i++){acc+=WEIGHTS[i];if(r<acc)return i}
+ return 0}
+function buildWheel(){const w=$('wheel');w.innerHTML='';
+ const N=SECTORS.length,seg=360/N,cols=['#c0392b','#1f2547'];
+ const grads=[];
+ for(let i=0;i<N;i++){const c=(i===N-1)?'#f5c542':cols[i%2];
+  grads.push(c+' '+(i*seg).toFixed(2)+'deg '+((i+1)*seg).toFixed(2)+'deg')}
+ w.style.background='conic-gradient('+grads.join(',')+')';
+ for(let i=0;i<N;i++){const sp=document.createElement('span');sp.className='lbl';
+  sp.textContent=SLOTS[i];
+  sp.style.transform='rotate('+(i*seg+seg/2).toFixed(2)+'deg) translateY(-96px)';
+  if(i===N-1){sp.style.color='#ffe9a8';sp.style.fontSize='14px'}
+  w.appendChild(sp)}
+ const hub=document.createElement('div');hub.className='hub';hub.textContent='🐹';w.appendChild(hub)}
+$('bWheel').onclick=()=>{buildWheel();
+ $('spinBtn').textContent='Крутить за '+fmt(spinCost())+' 🪙';
+ $('spinBtn').disabled=S.coins<spinCost();
+ $('prizeTxt').innerHTML='&nbsp;';$('wheelOv').classList.add('show')};
+$('bSnd').onclick=()=>{sndOn=!sndOn;$('bSnd').textContent=sndOn?'🔊':'🔇';S.snd=sndOn;save()};
+$('closeWheel').onclick=()=>$('wheelOv').classList.remove('show');
+$('spinBtn').onclick=()=>{if(spinning||S.coins<spinCost())return;
+ S.coins-=spinCost();S.spins++;save();render();
+ const idx=rollSector();
+ const seg=360/SECTORS.length;
+ const need=((360-(idx*seg+seg/2))%360+360)%360;
+ const delta=((need-curA%360)%360+360)%360;
+ curA+=360*8+delta;
+ $('wheel').style.transform='rotate('+curA+'deg)';
+ /* тики рулетки: частые вначале, реже к остановке */
+ let t=90,gap=55;
+ for(let i=0;i<22;i++){setTimeout(()=>beep(640,.03,'square'),t);t+=gap;gap*=1.14}
+ spinning=true;$('spinBtn').disabled=true;$('prizeTxt').innerHTML='&nbsp;';
+ setTimeout(()=>{givePrize(idx);playJingle();spinning=false;
+  S.spinPrice=Math.round(spinCost()*1.1);save();render();
+  $('spinBtn').textContent='Крутить за '+fmt(spinCost())+' 🪙';
+  $('spinBtn').disabled=S.coins<spinCost()},6500)};
+function playJingle(){beep(523,.12);setTimeout(()=>beep(659,.12),200);
+ setTimeout(()=>beep(784,.12),400);setTimeout(()=>beep(1047,.3),600)}
+function givePrize(idx){const pr=SECTORS[idx];
+ /* хомяк радуется: прыжок + конфетти */
+ const ham=$('ham');ham.classList.remove('win');void ham.offsetWidth;ham.classList.add('win');
+ const conf=['🎉','✨','🎊','💛','⭐'];
+ for(let i=0;i<12;i++){const c=document.createElement('span');c.className='confetti';
+  c.textContent=conf[Math.random()*conf.length|0];
+  c.style.left=(8+Math.random()*84)+'%';c.style.top=(10+Math.random()*30)+'%';
+  c.style.animationDelay=(Math.random()*.4)+'s';c.style.fontSize=(14+Math.random()*14)+'px';
+  stage.appendChild(c);setTimeout(()=>c.remove(),2100)}
+ if(pr.t==='coins'){S.coins+=pr.v;S.earned+=pr.v;
+  $('prizeTxt').textContent='🪙 +'+fmt(pr.v)+' хомакоинов!';
+  if(pr.v>=1e9){const conf2=['💎','🌟','✨','💫'];
+   for(let i=0;i<24;i++){const c=document.createElement('span');c.className='confetti';
+    c.textContent=conf2[Math.random()*conf2.length|0];
+    c.style.left=(4+Math.random()*92)+'%';c.style.top=(6+Math.random()*36)+'%';
+    c.style.animationDelay=(Math.random()*.7)+'s';c.style.fontSize=(18+Math.random()*20)+'px';
+    stage.appendChild(c);setTimeout(()=>c.remove(),2600)}
+   beep(1047,.5,'triangle',2093)}}
+ else if(pr.t==='pet'){const keys=Object.keys(PETS);const pid=keys[Math.random()*keys.length|0];const p=PETS[pid];
+  if(S.pets.includes(pid)){S.coins+=p.dup;S.earned+=p.dup;
+   $('prizeTxt').textContent=p.e+' уже дома — компенсация +'+fmt(p.dup)+' 🪙'}
+  else{S.pets.push(pid);renderAcc();
+   $('prizeTxt').textContent='Новый друг: '+p.e+' '+p.n+'! +'+p.cps+'/сек'}}
+ else{const it=ALL_ITEMS.concat(DECOR).find(x=>x.id===pr.id);
+  const dup=S.bought.includes(it.id)||S.decor.includes(it.id);
+  if(dup){const comp=Math.round(it.p*.5);S.coins+=comp;S.earned+=comp;
+   $('prizeTxt').textContent=it.e+' уже есть — компенсация +'+fmt(comp)+' 🪙 (50%)'}
+  else{if(DECOR.some(x=>x.id===it.id)){S.decor.push(it.id)}
+   else{if(HEADWEAR.includes(it.id))S.worn=S.worn.filter(w=>!HEADWEAR.includes(w));
+    S.bought.push(it.id);S.worn.push(it.id)}
+   renderAcc();
+   $('prizeTxt').textContent='Приз: '+it.e+' '+it.n+'!'}}
+ render();checkAch();save()}
+
+/* ===== пассивный доход (тик 250 мс) ===== */
+setInterval(()=>{if(document.hidden)return;
+ const c=cps()/4;S.coins+=c;S.earned+=c;renderCoins()},250);
+function renderCoins(){$('coins').textContent=fmt(S.coins)}
+/* счётчики: за тап / в секунду / в минуту */
+function statLine(){$('stat').textContent='🖐 +'+fmt(tapGain())+' за тап · ⚡ +'+fmt(cps())+'/сек · 🕒 +'+fmt(cps()*60)+'/мин'}
+setInterval(statLine,1000);statLine();
+setInterval(save,5000);
+
+/* ===== оффлайн-урожай (до 8 часов) ===== */
+(function off(){const dt=Math.min(Date.now()-S.last,8*3600*1000);
+ const gain=cps()*dt/1000;
+ if(gain>=1){S.coins+=gain;S.earned+=gain;
+  $('offVal').textContent=fmt(gain);$('offline').style.display='block';
+  setTimeout(()=>$('offline').style.display='none',6000)}})();
+
+render();renderAcc();pullCloud();
+</script>
+</body>
+</html>
