@@ -113,6 +113,7 @@ h1{font-size:22px;font-weight:800;color:#c98bb5;text-shadow:0 1px 0 #fff}
 .wheelOv{position:fixed;inset:0;background:rgba(90,60,110,.45);z-index:20;display:none;align-items:center;justify-content:center}
 .wheelOv.show{display:flex}
 .wheelBox{background:#fffdf8;border:2px solid #f6c1da;border-radius:26px;padding:16px 14px;text-align:center;max-width:92vw}
+.shopScroll{max-height:72vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:2px 2px 4px}
 .wheelWrap{position:relative;width:min(80vw,280px);height:min(80vw,280px);margin:10px auto}
 .wheel{width:100%;height:100%;border-radius:50%;border:7px solid #f5c542;box-shadow:0 0 0 3px #b8901e,0 10px 24px rgba(0,0,0,.45);transition:transform 6.5s cubic-bezier(.12,.6,.05,1);position:relative;
  background:conic-gradient(#c0392b 0 30deg,#1f2547 30deg 60deg,#c0392b 60deg 90deg,#1f2547 90deg 120deg,#c0392b 120deg 150deg,#1f2547 150deg 180deg,#c0392b 180deg 210deg,#1f2547 210deg 240deg,#c0392b 240deg 270deg,#1f2547 270deg 300deg,#c0392b 300deg 330deg,#1f2547 330deg 360deg)}
@@ -273,6 +274,7 @@ h1{font-size:22px;font-weight:800;color:#c98bb5;text-shadow:0 1px 0 #fff}
       <button class="btn ctaBtn" id="bWheel">🎡 Крутить</button>
       <button class="btn ctaBtn" id="bBox">📦 Коробка дня</button>
     </div>
+    <button class="btn wheelPad" id="bShop">🛍️ Магазин</button>
     <button class="btn wheelPad" id="bAd">📺 +5000 хомакоинов за рекламу</button>
     <button class="btn wheelPad" id="vkShare" style="display:none">📢 Похвастаться в VK</button>
     <button class="btn wheelPad" id="vkBoard" style="display:none">🏆 Топ игроков</button>
@@ -285,16 +287,23 @@ h1{font-size:22px;font-weight:800;color:#c98bb5;text-shadow:0 1px 0 #fff}
         <div class="ds">Пассивный доход: <span id="cps2">0</span>/сек</div>
         <div class="pr" id="whPr">💰 50</div></div>
     </div>
-
-    <div class="h2">Гардероб хомяка <span style="font-size:10px;letter-spacing:0">— тапни по надетому, чтобы снять</span></div>
-    <div class="cards" id="shop"></div>
-    <div class="ward" id="worn"></div>
-    <div class="h2">Дом хомяка <span style="font-size:10px;letter-spacing:0">— покупается навсегда и приносит монетки</span></div>
-    <div class="cards" id="decor"></div>
-    <div class="h2">🎡 Что выпадает с колеса</div>
-    <div class="ward" id="wheelList"></div>
-    <div class="h2">🏆 Ачивки</div>
-    <div class="ward" id="achs"></div>
+  </div>
+</div>
+<div class="wheelOv" id="shopOv">
+  <div class="wheelBox" style="width:min(96vw,560px)">
+    <div style="font-weight:800;color:#c98bb5;font-size:18px">🛍️ Магазин</div>
+    <div class="shopScroll">
+      <div class="h2">Гардероб хомяка <span style="font-size:10px;letter-spacing:0">— тапни по надетому, чтобы снять</span></div>
+      <div class="cards" id="shop"></div>
+      <div class="ward" id="worn"></div>
+      <div class="h2">Дом хомяка <span style="font-size:10px;letter-spacing:0">— покупается навсегда и приносит монетки</span></div>
+      <div class="cards" id="decor"></div>
+      <div class="h2">🎡 Что выпадает с колеса</div>
+      <div class="ward" id="wheelList"></div>
+      <div class="h2">🏆 Ачивки</div>
+      <div class="ward" id="achs"></div>
+    </div>
+    <button class="btn" id="closeShop" style="margin-top:8px;opacity:.75">Закрыть</button>
   </div>
 </div>
 <div class="wheelOv" id="wheelOv">
@@ -737,6 +746,8 @@ $('bWheel').onclick=()=>{buildWheel();
  $('spinBtn').disabled=S.coins<spinCost();
  $('prizeTxt').innerHTML='&nbsp;';$('wheelOv').classList.add('show')};
 $('bSnd').onclick=()=>{sndOn=!sndOn;$('bSnd').textContent=sndOn?'🔊':'🔇';S.snd=sndOn;save()};
+$('bShop').onclick=()=>{$('shopOv').classList.add('show');render()};
+$('closeShop').onclick=()=>{$('shopOv').classList.remove('show');render()};
 $('closeWheel').onclick=()=>$('wheelOv').classList.remove('show');
 $('spinBtn').onclick=()=>{if(spinning||S.coins<spinCost())return;
  S.coins-=spinCost();S.spins++;save();render();
