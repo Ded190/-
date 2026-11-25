@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -677,7 +678,9 @@ setInterval(updateAdBtn,15000);
 /* ===== VK Bridge: инициализация в мини-приложении и «Похвастаться» ===== */
 const isVK=/vk\.|userapi/.test(location.hostname)||new URLSearchParams(location.search).has('vk_app_id');
 if(isVK&&window.vkBridge&&typeof vkBridge.send==='function'){
- try{vkBridge.send('VKWebAppInit');$('vkShare').style.display='block';$('vkBoard').style.display='block'}catch(e){}}
+ try{vkBridge.send('VKWebAppInit');$('vkShare').style.display='block';$('vkBoard').style.display='block';
+  setTimeout(()=>toast('🐹 Хомакоин: VK-режим активен'),600)}catch(e){}}
+else if(isVK)setTimeout(()=>toast('⚠️ VK-мост не загрузился — обнови страницу'),600);
 $('vkShare').onclick=()=>{if(!(window.vkBridge&&typeof vkBridge.send==='function'))return;
  try{vkBridge.send('VKWebAppShare',{link:location.href})
   .then(r=>{if(r&&r.result)toast('📢 Шторка VK открылась — жми «Поделиться»!')})
@@ -821,4 +824,3 @@ render();renderAcc();pullCloud();
 </script>
 </body>
 </html>
-
